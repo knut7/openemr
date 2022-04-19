@@ -319,6 +319,8 @@ class CarecoordinationTable extends AbstractTableGateway
         $e = 1;
         $f = 1;
         $g = 1;
+        $h = 1;
+        $p = 1; // payer QRDA
 
         $arr_procedure_res = array();
         $arr_encounter = array();
@@ -432,6 +434,8 @@ class CarecoordinationTable extends AbstractTableGateway
                     $newdata['referral'][$rowfield['field_name']] = $rowfield['field_value'];
                 } elseif ($table == 'observation_preformed') {
                     $newdata['observation_preformed'][$rowfield['field_name']] = $rowfield['field_value'];
+                } elseif ($table == 'payer') {
+                    $newdata['payer'][$rowfield['field_name']] = $rowfield['field_value'];
                 }
             }
 
@@ -681,6 +685,7 @@ class CarecoordinationTable extends AbstractTableGateway
                 $arr_care_plan['care_plan'][$e]['reason_description'] = $newdata['care_plan']['reason_description'] ?? null;
                 $arr_care_plan['care_plan'][$e]['reason_date_low'] = $newdata['care_plan']['reason_date_low'] ?? null;
                 $arr_care_plan['care_plan'][$e]['reason_date_high'] = $newdata['care_plan']['reason_date_high'] ?? null;
+                $arr_care_plan['care_plan'][$e]['reason_status'] = $newdata['care_plan']['reason_status'] ?? null;
                 $e++;
             } elseif ($table == 'functional_cognitive_status') {
                 $arr_functional_cognitive_status['functional_cognitive_status'][$f]['extension'] = $newdata['functional_cognitive_status']['extension'];
@@ -714,6 +719,12 @@ class CarecoordinationTable extends AbstractTableGateway
                 $arr_observation_preformed['observation_preformed'][$h]['reason_code'] = $newdata['observation_preformed']['reason_code'];
                 $arr_observation_preformed['observation_preformed'][$h]['reason_code_text'] = $newdata['observation_preformed']['reason_code_text'];
                 $h++;
+            } elseif ($table == 'payer') {
+                $arr_payer['payer'][$p]['code'] = $newdata['payer']['code'];
+                $arr_payer['payer'][$p]['status'] = $newdata['payer']['status'];
+                $arr_payer['payer'][$p]['low_date'] = $newdata['payer']['low_date'];
+                $arr_payer['payer'][$p]['high_date'] = $newdata['payer']['high_date'];
+                $p++;
             }
         }
 
@@ -730,6 +741,7 @@ class CarecoordinationTable extends AbstractTableGateway
         $this->importService->InsertFunctionalCognitiveStatus(($arr_functional_cognitive_status['functional_cognitive_status'] ?? null), $pid, $this, 0);
         $this->importService->InsertReferrals(($arr_referral['referral'] ?? null), $pid, 0);
         $this->importService->InsertObservationPerformed(($arr_observation_preformed['observation_preformed'] ?? null), $pid, $this, 0);
+        $this->importService->InsertPayers(($arr_payer['payer'] ?? null), $pid, $this, 0);
 
         if (!empty($audit_master_id)) {
             $appTable->zQuery("UPDATE audit_master
@@ -1735,6 +1747,7 @@ class CarecoordinationTable extends AbstractTableGateway
 
     /**
      * Method for review discard. Soft delete.
+     *
      * @param $data
      * @return void
      */
@@ -1749,8 +1762,10 @@ class CarecoordinationTable extends AbstractTableGateway
                       SET audit_master_approval_status='3'
                       WHERE audit_master_id=?", array($data['audit_master_id']));
     }
+
     /**
      * Method hard delete audit data.
+     *
      * @param $data
      * @return void
      */
