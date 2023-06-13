@@ -20,19 +20,20 @@
 
 require_once "../globals.php";
 require_once "../../custom/code_types.inc.php";
-require_once "$srcdir/patient.inc";
+require_once "$srcdir/patient.inc.php";
 require_once "$srcdir/options.inc.php";
 
 use OpenEMR\Billing\BillingReport;
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 use OpenEMR\OeUI\OemrUI;
 
 //ensure user has proper access
 if (!AclMain::aclCheckCore('acct', 'eob', '', 'write') && !AclMain::aclCheckCore('acct', 'bill', '', 'write')) {
-    echo xlt('Billing Reporting Not Authorized');
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Billing Manager")]);
     exit;
 }
 
@@ -1095,8 +1096,8 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                         $iter['enc_pid']
                                         )
                                     );
-                                    $is_edited = $c['status'] ? 'btn-success' : 'btn-warning';
-                                    $bname = $c['status'] ? xl('Reviewed') : xl('Review UB04');
+                                    $is_edited = ($c['status'] ?? null) ? 'btn-success' : 'btn-warning';
+                                    $bname = ($c['status'] ?? null) ? xl('Reviewed') : xl('Review UB04');
                                     $lhtml .= "<a class='btn btn-sm $is_edited' role='button' onclick='popUB04(" . attr_js($iter['enc_pid']) . "," . attr_js($iter['enc_encounter']) . "); return false;'>" . text($bname) . "</a>";
                                 }
                                 $lhtml .= "</div>";
@@ -1117,13 +1118,15 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                     "FROM insurance_data AS id, insurance_companies AS ic WHERE " .
                                     "ic.id = id.provider AND " .
                                     "id.pid = ? AND " .
-                                    "(id.date <= ? OR id.date IS NULL) " .
+                                    "(id.date <= ? OR id.date IS NULL) AND " .
+                                    "(id.date_end >= ? OR id.date_end IS NULL) " .
                                     "ORDER BY id.type ASC, id.date DESC";
 
                                     $result = sqlStatement(
                                         $query,
                                         array(
                                         $iter['enc_pid'],
+                                        $raw_encounter_date,
                                         $raw_encounter_date
                                         )
                                     );

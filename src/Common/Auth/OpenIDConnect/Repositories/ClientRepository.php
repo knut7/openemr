@@ -140,6 +140,13 @@ class ClientRepository implements ClientRepositoryInterface
      */
     private function hydrateClientEntityFromArray($client_record): ClientEntity
     {
+        // note redirect_uris in the database is actually named redirect_uri
+        $pipedValues = array('contacts', 'redirect_uri', 'request_uri', 'post_logout_redirect_uris', 'grant_types', 'response_types', 'default_acr_values');
+        foreach ($pipedValues as $value) {
+            if (!empty($client_record[$value])) {
+                $client_record[$value] = explode('|', $client_record[$value]);
+            }
+        }
         $client = new ClientEntity();
         $client->setIdentifier($client_record['client_id']);
         $client->setName($client_record['client_name']);
@@ -150,7 +157,7 @@ class ClientRepository implements ClientRepositoryInterface
         // launch uri is the same as the initiate_login_uri SMART uses launchUri
         // so we will refer to it that way.
         $client->setLaunchUri($client_record['initiate_login_uri']);
-        $client->setIsEnabled($client_record['is_enabled'] === "1");
+        $client->setIsEnabled($client_record['is_enabled'] == "1");
         $client->setJwks($client_record['jwks']);
         $client->setJwksUri($client_record['jwks_uri']);
         $client->setLogoutRedirectUris($client_record['logout_redirect_uris']);

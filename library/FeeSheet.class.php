@@ -29,7 +29,7 @@ require_once(dirname(__FILE__) . "/../custom/code_types.inc.php");
 require_once(dirname(__FILE__) . "/../interface/drugs/drugs.inc.php");
 require_once(dirname(__FILE__) . "/options.inc.php");
 require_once(dirname(__FILE__) . "/appointment_status.inc.php");
-require_once(dirname(__FILE__) . "/forms.inc");
+require_once(dirname(__FILE__) . "/forms.inc.php");
 
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Common\Acl\AclMain;
@@ -38,8 +38,8 @@ use OpenEMR\Common\Logging\EventAuditLogger;
 // For logging checksums set this to true.
 define('CHECKSUM_LOGGING', true);
 
-// require_once(dirname(__FILE__) . "/api.inc");
-// require_once(dirname(__FILE__) . "/forms.inc");
+// require_once(dirname(__FILE__) . "/api.inc.php");
+// require_once(dirname(__FILE__) . "/forms.inc.php");
 
 class FeeSheet
 {
@@ -55,6 +55,7 @@ class FeeSheet
     public $provider_id = 0;
     public $supervisor_id = 0;
     public $code_is_in_fee_sheet = false;       // Set by genCodeSelectorValue()
+    public $payer_id;
 
   // Possible units of measure for NDC drug quantities.
     public $ndc_uom_choices = array(
@@ -452,7 +453,7 @@ class FeeSheet
         // If using line item billing and user wishes to default to a selected provider, then do so.
         if (!empty($GLOBALS['default_fee_sheet_line_item_provider']) && !empty($GLOBALS['support_fee_sheet_line_item_provider'])) {
             if ($provider_id == 0) {
-                $provider_id = 0 + $this->findProvider();
+                $provider_id = (int) $this->findProvider();
             }
         }
 
@@ -1212,7 +1213,7 @@ class FeeSheet
                         "WHERE ds.sale_id = ?",
                         array($sale_id)
                     );
-                    $rxid = 0 + $tmprow['prescription_id'];
+                    $rxid = (int) $tmprow['prescription_id'];
                     $logarr = null;
                     if (!empty($tmprow)) {
                         $logarr = array(
@@ -1387,7 +1388,7 @@ class FeeSheet
                             $rxobj->persist();
                             // Set drug_sales.prescription_id to $rxobj->get_id().
                             $oldrxid = $rxid;
-                            $rxid = 0 + $rxobj->get_id();
+                            $rxid = (int) $rxobj->get_id();
                         if ($rxid != $oldrxid) {
                             sqlStatement(
                                 "UPDATE drug_sales SET prescription_id = ? WHERE sale_id = ?",

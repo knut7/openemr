@@ -21,8 +21,8 @@
 
 $form_folder = "eye_mag";
 require_once('../../globals.php');
-require_once($GLOBALS['srcdir'] . '/lists.inc');
-require_once($GLOBALS['srcdir'] . '/patient.inc');
+require_once($GLOBALS['srcdir'] . '/lists.inc.php');
+require_once($GLOBALS['srcdir'] . '/patient.inc.php');
 require_once($GLOBALS['srcdir'] . '/options.inc.php');
 require_once($GLOBALS['fileroot'] . '/custom/code_types.inc.php');
 require_once($GLOBALS['srcdir'] . '/csv_like_join.php');
@@ -31,7 +31,7 @@ require_once("../../forms/" . $form_folder . "/php/" . $form_folder . "_function
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Core\Header;
 
-$pid = 0 + (empty($_REQUEST['pid']) ? $pid : $_REQUEST['pid']);
+$pid = (int) (empty($_REQUEST['pid']) ? $pid : $_REQUEST['pid']);
 $info_msg = "";
 
 // A nonempty thisenc means we are to link the issue to the encounter.
@@ -592,7 +592,7 @@ foreach (explode(',', $given) as $item) {
     <!-- Add Font stuff for the look and feel.  -->
 
     <?php Header::setupHeader(['datetime-picker', 'purecss', 'shortcut', 'opener', 'dialog'  ]); ?>
-    
+
     <link rel="stylesheet" href="<?php echo $GLOBALS['rootdir']; ?>/forms/<?php echo $form_folder; ?>/css/style.css">
     <script src="<?php echo $GLOBALS['webroot']; ?>/interface/forms/<?php echo $form_folder; ?>/js/eye_base.php?enc=<?php echo attr($encounter); ?>&providerID=<?php echo attr($providerID); ?>"></script>
 </head>
@@ -672,7 +672,7 @@ foreach (explode(',', $given) as $item) {
                         box-sizing: border-box;
                         display: inline-block;
                     }
-                    
+
                 </style>
                 <table class='border-0 w-100 small'>
                     <tr id='row_quick_picks'>

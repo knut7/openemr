@@ -13,10 +13,10 @@
  */
 
 require_once(__DIR__ . "/../../globals.php");
-require_once("$srcdir/api.inc");
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/api.inc.php");
+require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/options.inc.php");
-require_once("$srcdir/lab.inc");
+require_once("$srcdir/lab.inc.php");
 
 use OpenEMR\Core\Header;
 
@@ -24,7 +24,7 @@ formHeader("Form:Lab Requisition");
 
 $returnurl = 'encounter_top.php';
 
-$formid = 0 + (isset($_GET['id']) ? $_GET['id'] : '');
+$formid = (int) (isset($_GET['id']) ? $_GET['id'] : '');
 $obj = $formid ? formFetch("form_requisition", $formid) : array();
 
 global $pid ;

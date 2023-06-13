@@ -1781,7 +1781,7 @@ function build_PMSFH($pid)
         $field_id   = $group_fields['field_id'];
         $list_id    = $group_fields['list_id'];
         $currvalue  = '';
-        if ((preg_match("/^\|?0\|?\|?/", $result1[$field_id])) || ($result1[$field_id] == '')) {
+        if ((preg_match("/^\|?0\|?\|?/", ($result1[$field_id] ?? ''))) || ($result1[$field_id] == '')) {
             continue;
         } else {
             $currvalue = $result1[$field_id];
@@ -1907,7 +1907,7 @@ function build_PMSFH($pid)
         $field_id   = $group_fields['field_id'];
         $list_id    = $group_fields['list_id'];
         $currvalue  = '';
-        if ((preg_match("/^\|?0\|?\|?/", $result1[$field_id])) || ($result1[$field_id] == '')) {
+        if ((preg_match("/^\|?0\|?\|?/", ($result1[$field_id] ?? ''))) || ($result1[$field_id] == '')) {
             continue;
         } else {
             $currvalue = $result1[$field_id];
@@ -3980,7 +3980,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam")
                                     <li class="divider"></li>
                                     <li id="menu_fullscreen" name="menu_fullscreen" <?php echo ($fullscreen ?? ''); ?>>
                                         <a class="nav-link black"
-                                           onclick="openNewForm('<?php echo $GLOBALS['webroot']; ?>/interface/patient_file/encounter/load_form.php?formname=fee_sheet');top.restoreSession();dopopup('<?php echo $_SERVER['REQUEST_URI'] . '&display=fullscreen&encounter=' . $encounter; ?>');"
+                                           onclick="openNewForm(<?php echo attr_js($GLOBALS['webroot']); ?> + '/interface/patient_file/encounter/load_form.php?formname=fee_sheet');top.restoreSession();dopopup(<?php echo attr_js($_SERVER['REQUEST_URI']); ?> + '&display=fullscreen&encounter=' + <?php echo attr_js(urlencode($encounter)); ?>);"
                                            href="JavaScript:void(0);"
                                            ><?php echo xlt('Fullscreen'); ?></a>
                                     </li>
@@ -3988,7 +3988,7 @@ function menu_overhaul_top($pid, $encounter, $title = "Eye Exam")
                             } ?>
                         </ul>
                     </li>
-               
+
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" id="menu_dropdown_view" role="button" aria-expanded="true"><?php echo xlt("View"); ?> </a>
                         <ul class="dropdown-menu" role="menu">
@@ -4124,7 +4124,7 @@ function menu_overhaul_left($pid, $encounter)
                 ?>
                 <object><embed
                             src="<?php echo $GLOBALS['webroot']; ?>/controller.php?document&retrieve&patient_id=<?php echo attr($pid); ?>&document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&as_file=false&original_file=true&disable_exit=false&show_original=true&context=patient_picture"
-                            
+
                             Xsrc="<?php echo $GLOBALS['webroot']; ?>/controller.php?document&amp;retrieve&amp;patient_id=<?php echo attr($pid); ?>&amp;document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&amp;as_file=false" frameborder="0"
                      type="<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['mimetype']); ?>" allowscriptaccess="always" allowfullscreen="false" height="100"></embed></object>
                 <?php
@@ -4377,7 +4377,7 @@ function start_your_engines($FIELDS)
             $term = $amihere['term'];
         }
 
-        if (stripos($FIELDS[$amihere['location']], $term) !== false) {
+        if (stripos(($FIELDS[$amihere['location']] ?? ''), $term) !== false) {
             //the term is in the field
             $within_array = 'no';
             if (isset($positives[$amihere['location']]) > '') { //true if anything was already found in this field
@@ -5279,7 +5279,12 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday')
                                 $hideme = "hideme_cups nodisplay";
                             }
 
-                            $cups .= "<tr><td class='GFS_td_1 " . $hideme . " '>" . text($visit['exam_date']) . "</td><td class='GFS_td " . $hideme . "' style='border:1pt dotted gray;'>" . text($visit['ODCUP']) . "</td><td class='GFS_td " . $hideme . "' style='border:1pt dotted gray;''>" . text($visit['OSCUP']) . "</td></tr>";
+                            if ($cups ?? null) {
+                                $cups .= "<tr><td class='GFS_td_1 " . $hideme . " '>" . text($visit['exam_date']) . "</td><td class='GFS_td " . $hideme . "' style='border:1pt dotted gray;'>" . text($visit['ODCUP']) . "</td><td class='GFS_td " . $hideme . "' style='border:1pt dotted gray;''>" . text($visit['OSCUP']) . "</td></tr>";
+                            } else {
+                                $cups = "<tr><td class='GFS_td_1 " . $hideme . " '>" . text($visit['exam_date']) . "</td><td class='GFS_td " . $hideme . "' style='border:1pt dotted gray;'>" . text($visit['ODCUP']) . "</td><td class='GFS_td " . $hideme . "' style='border:1pt dotted gray;''>" . text($visit['OSCUP']) . "</td></tr>";
+                            }
+
                             $DISCS_chart .= '"1",';
                             $count++;
                         } else {
@@ -5304,17 +5309,17 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday')
                     }
 
                     if ($count > '0') {
-                        echo "<td class='GFS_title center'>" . xlt('OD{{right eye}}') . "</td><td class='GFS_title center'>" . xlt('OS{{left eye}}') . "</td>" . $plus;
+                        echo "<td class='GFS_title center'>" . xlt('OD{{right eye}}') . "</td><td class='GFS_title center'>" . xlt('OS{{left eye}}') . "</td>" . ($plus ?? '');
                     } else {
                         echo "<td class='GFS_title center'></td><td class='GFS_title center'></td>";
                     }
                     ?>
                 </tr>
-                        <?php echo $cups; ?>
+                        <?php echo $cups ?? ''; ?>
 
             </table>
         </div>
-        <script src="<?php echo $GLOBALS['assets_static_relative'] ?>/chart.js/dist/chart.js"></script>
+        <script type="module" src="<?php echo $GLOBALS['assets_static_relative'] ?>/chart.js/dist/chart.js"></script>
         <div style="position:relative;float:right; margin: 0px 5px;text-align:center;width:60%;">
             <?php
             if ($priors) {
@@ -5733,7 +5738,7 @@ function display_GlaucomaFlowSheet($pid, $bywhat = 'byday')
                     var ctx1 = document.getElementById("canvas_byday").getContext("2d");
                     var ctx2 = document.getElementById("canvas_byhour").getContext("2d");
 
-                    var myLine = new Chart.Bar(ctx1, config_byday);
+                    var myLine = new Chart(ctx1, config_byday);
                     var myLine2 = new Chart(ctx2, config_byhour);
                 </script>
                 <?php

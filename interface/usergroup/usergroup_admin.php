@@ -16,19 +16,19 @@
  * @copyright Copyright (c) 2021 Daniel Pflieger <daniel@mi-squared.com> <daniel@growlingflea.com>
  * @copyright Copyright (c) 2021 Ken Chapple <ken@mi-squared.com>
  * @copyright Copyright (c) 2021 Rod Roark <rod@sunsetsystems.com>
- * @copyright Copyright (c) 2022 Robert Down <robertdown@live.com>
+ * @copyright Copyright (c) 2022-2023 Robert Down <robertdown@live.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 $sessionAllowWrite = true;
 require_once("../globals.php");
-require_once("$srcdir/auth.inc");
 
 use OpenEMR\Common\Acl\AclExtended;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Auth\AuthUtils;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Uuid\UuidRegistry;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 use OpenEMR\Services\UserService;
 use OpenEMR\Events\User\UserUpdatedEvent;
@@ -47,7 +47,8 @@ if (!empty($_GET)) {
 }
 
 if (!AclMain::aclCheckCore('admin', 'users')) {
-    die(xlt('Access denied'));
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("User / Groups")]);
+    exit;
 }
 
 if (!AclMain::aclCheckCore('admin', 'super')) {
@@ -319,7 +320,7 @@ if (isset($_POST["privatemode"]) && $_POST["privatemode"] == "user_admin") {
         // TODO: why are we sending $user_data here when its overwritten with just the 'username' of the user updated
         // instead of the entire user data?  This makes the pre event data not very useful w/o doing a database hit...
         $userUpdatedEvent = new UserUpdatedEvent($user_data, $_POST);
-        $GLOBALS["kernel"]->getEventDispatcher()->dispatch(UserUpdatedEvent::EVENT_HANDLE, $userUpdatedEvent, 10);
+        $GLOBALS["kernel"]->getEventDispatcher()->dispatch($userUpdatedEvent, UserUpdatedEvent::EVENT_HANDLE, 10);
     }
 }
 
@@ -447,7 +448,7 @@ if (isset($_POST["mode"])) {
             $submittedData['username'] = $submittedData['rumple'] ?? null;
             $userCreatedEvent = new UserCreatedEvent($submittedData);
             unset($submittedData); // clear things out in case we have any sensitive data here
-            $GLOBALS["kernel"]->getEventDispatcher()->dispatch(UserCreatedEvent::EVENT_HANDLE, $userCreatedEvent, 10);
+            $GLOBALS["kernel"]->getEventDispatcher()->dispatch($userCreatedEvent, UserCreatedEvent::EVENT_HANDLE, 10);
         }
     } elseif ($_POST["mode"] == "new_group") {
         $res = sqlStatement("select distinct name, user from `groups`");
@@ -558,6 +559,21 @@ function authorized_clicked() {
  f.calendar.checked  =  f.authorized.checked;
 }
 
+function resetCounter(username) {
+    top.restoreSession();
+    request = new FormData;
+    request.append("function", "resetUsernameCounter");
+    request.append("username", username);
+    request.append("csrf_token_form", <?php echo js_escape(CsrfUtils::collectCsrfToken('counter')); ?>);
+    fetch("<?php echo $GLOBALS["webroot"]; ?>/library/ajax/login_counter_ip_tracker.php", {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: request
+    });
+    let loginCounterElement = document.getElementById('login-counter-' + username);
+    loginCounterElement.innerHTML = "0";
+}
+
 </script>
 
 </head>
@@ -617,6 +633,7 @@ function authorized_clicked() {
                                 echo '<th>' . xlt('Password Expiration') . '</th>';
                             }
                             ?>
+                            <th><?php echo xlt('Failed Login Counter'); ?></th>
                         </tr>
                     <tbody>
                         <?php
@@ -686,6 +703,41 @@ function authorized_clicked() {
                                 }
                                 echo '</td>';
                             }
+                            if (empty($iter["active"])) {
+                                echo '<td>';
+                                echo xlt('Not Applicable');
+                            } else {
+                                echo '<td id="login-counter-' . attr($iter["username"]) .  '">';
+                                $queryCounter = privQuery("SELECT `login_fail_counter`, `last_login_fail`, TIMESTAMPDIFF(SECOND, `last_login_fail`, NOW()) as `seconds_last_login_fail` FROM `users_secure` WHERE BINARY `username` = ?", [$iter["username"]]);
+                                if (!empty($queryCounter['login_fail_counter'])) {
+                                    echo text($queryCounter['login_fail_counter']);
+                                    if (!empty($queryCounter['last_login_fail'])) {
+                                        echo ' (' . xlt('last on') . ' ' . text(oeFormatDateTime($queryCounter['last_login_fail'])) . ')';
+                                    }
+                                    echo ' ' . '<button type="button" class="btn btn-sm btn-danger ml-1" onclick="resetCounter(' . attr_js($iter["username"]) . ')">' . xlt("Reset Counter") . '</button>';
+                                    $autoBlocked = false;
+                                    $autoBlockEnd = null;
+                                    if ((int)$GLOBALS['password_max_failed_logins'] != 0 && ($queryCounter['login_fail_counter'] > (int)$GLOBALS['password_max_failed_logins'])) {
+                                        if ((int)$GLOBALS['time_reset_password_max_failed_logins'] != 0) {
+                                            if ($queryCounter['seconds_last_login_fail'] < (int)$GLOBALS['time_reset_password_max_failed_logins']) {
+                                                $autoBlocked = true;
+                                                $autoBlockEnd = date('Y-m-d H:i:s', (time() + ((int)$GLOBALS['time_reset_password_max_failed_logins'] - $queryCounter['seconds_last_login_fail'])));
+                                            }
+                                        } else {
+                                            $autoBlocked = true;
+                                        }
+                                    }
+                                    if ($autoBlocked) {
+                                        echo '<br>' . xlt("Currently Autoblocked");
+                                        if (!empty($autoBlockEnd)) {
+                                            echo ' (' . xlt("Autoblock ends on") . ' ' . text(oeFormatDateTime($autoBlockEnd)) . ')';
+                                        }
+                                    }
+                                } else {
+                                    echo '0';
+                                }
+                            }
+                            echo '</td>';
                             print "</tr>\n";
                         }
                         ?>
